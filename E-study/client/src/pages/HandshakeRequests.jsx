@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { toast } from 'react-hot-toast';
-import { Check, X, User, MessageSquare, Loader2, Clock } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Check, X, User, MessageSquare, Loader2, Clock, Users, ShieldCheck } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Avatar } from '../components/ui/Avatar';
 
 const HandshakeRequests = () => {
     const [requests, setRequests] = useState([]);
@@ -13,8 +16,8 @@ const HandshakeRequests = () => {
             try {
                 const { data } = await api.get('/handshakes/my-requests');
                 setRequests(data);
-            } catch (error) {
-                toast.error('Failed to load requests');
+            } catch (_error) {
+                toast.error('Failed to load connection requests');
             } finally {
                 setLoading(false);
             }
@@ -26,68 +29,100 @@ const HandshakeRequests = () => {
         try {
             await api.put(`/handshakes/${id}`, { status });
             setRequests(requests.filter(r => r._id !== id));
-            toast.success(`Request ${status === 'accepted' ? 'Accepted' : 'Rejected'}`);
-        } catch (error) {
+            toast.success(`Mentorship request ${status === 'accepted' ? 'Accepted' : 'Declined'}`);
+        } catch (_error) {
             toast.error('Action failed');
         }
     };
 
-    if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" /></div>;
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-24 space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin text-indigo-400" />
+                <p className="text-zinc-400 text-sm font-medium">Checking incoming handshakes...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8">
-            <header>
-                <h2 className="text-4xl font-extrabold mb-2">Connection Requests</h2>
-                <p className="text-slate-400">Learners who want to connect with you for study materials.</p>
+        <div className="max-w-4xl mx-auto space-y-8 pb-16">
+            {/* Header */}
+            <header className="border-b border-zinc-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center space-x-2 mb-1">
+                        <Badge variant="secondary" size="sm" icon={Users}>
+                            Mentorship Gateway
+                        </Badge>
+                        <span className="text-xs text-zinc-500 font-mono">{requests.length} Pending Handshakes</span>
+                    </div>
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-zinc-100 tracking-tight">
+                        Mentorship Handshake Requests
+                    </h1>
+                    <p className="mt-1 text-zinc-400 text-sm">
+                        Students who have requested your 1-on-1 academic mentorship and study material access.
+                    </p>
+                </div>
             </header>
 
             <div className="space-y-4">
-                <AnimatePresence>
-                    {requests.length > 0 ? requests.map((req) => (
-                        <motion.div 
-                            key={req._id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            className="bg-slate-800 border border-slate-700 p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-6"
-                        >
-                            <div className="flex items-center space-x-4">
-                                <div className="bg-primary/20 p-3 rounded-full">
-                                    <User className="text-primary-light" />
-                                </div>
-                                <div>
-                                    <h4 className="text-xl font-bold">{req.learnerId.name}</h4>
-                                    <p className="text-slate-400 text-sm italic">Interests: {req.learnerId.learnerProfile?.interests?.join(', ')}</p>
-                                    <div className="flex items-center text-xs text-slate-500 mt-1">
-                                        <Clock size={12} className="mr-1" />
-                                        {new Date(req.createdAt).toLocaleDateString()}
+                {requests.length > 0 ? (
+                    requests.map((req) => (
+                        <div key={req._id}>
+                            <Card className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-indigo-500/40">
+                                <div className="flex items-center space-x-4">
+                                    <Avatar name={req.learnerId?.name} size="lg" />
+                                    <div>
+                                        <div className="flex items-center space-x-2">
+                                            <h4 className="text-lg font-bold text-zinc-100">{req.learnerId?.name}</h4>
+                                            <Badge variant="primary" size="sm">Student</Badge>
+                                        </div>
+                                        <p className="text-zinc-400 text-xs mt-0.5">{req.learnerId?.email}</p>
+                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                            <span className="text-[11px] font-semibold text-zinc-400">Interests:</span>
+                                            {req.learnerId?.learnerProfile?.interests?.length ? (
+                                                req.learnerId.learnerProfile.interests.map((int, i) => (
+                                                    <span key={i} className="px-2 py-0.5 rounded-md bg-zinc-950 text-[10px] text-zinc-300 border border-zinc-800">
+                                                        {int}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-xs text-zinc-500 italic">Not specified</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center text-[11px] text-zinc-500 mt-2">
+                                            <Clock className="w-3 h-3 mr-1" />
+                                            Requested on {new Date(req.createdAt).toLocaleDateString()}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div className="flex items-center space-x-3">
-                                <button 
-                                    onClick={() => handleAction(req._id, 'rejected')}
-                                    className="px-4 py-2 border border-slate-700 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition flex items-center space-x-2"
-                                >
-                                    <X size={18} />
-                                    <span>Reject</span>
-                                </button>
-                                <button 
-                                    onClick={() => handleAction(req._id, 'accepted')}
-                                    className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition flex items-center space-x-2 shadow-lg shadow-emerald-900/20"
-                                >
-                                    <Check size={18} />
-                                    <span>Accept</span>
-                                </button>
-                            </div>
-                        </motion.div>
-                    )) : (
-                        <div className="text-center py-20 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
-                            <p className="text-slate-500">No pending requests at the moment.</p>
+                                <div className="flex items-center space-x-3 self-end md:self-center">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleAction(req._id, 'rejected')}
+                                        icon={X}
+                                        className="text-zinc-400 hover:text-red-400"
+                                    >
+                                        Decline
+                                    </Button>
+                                    <Button
+                                        variant="success"
+                                        size="sm"
+                                        onClick={() => handleAction(req._id, 'accepted')}
+                                        icon={Check}
+                                    >
+                                        Accept Handshake
+                                    </Button>
+                                </div>
+                            </Card>
                         </div>
-                    )}
-                </AnimatePresence>
+                    ))
+                ) : (
+                    <div className="p-16 text-center border border-dashed border-zinc-800 rounded-2xl text-zinc-500 text-sm">
+                        No pending mentorship requests at the moment.
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { LogIn, Mail, Lock, Loader2, GraduationCap, School, ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { 
+    LogIn, Mail, Lock, Loader2, GraduationCap, 
+    School, ShieldCheck, ArrowRight, Sparkles 
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Badge } from '../components/ui/Badge';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -18,93 +24,120 @@ const Login = () => {
         setLoading(true);
         try {
             await login(email, password);
-            toast.success('Login Successful!');
+            toast.success('Signed in successfully!');
             navigate('/dashboard');
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Login Failed');
+            toast.error(error.response?.data?.message || 'Invalid credentials or login failed');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="flex justify-center items-center min-h-[70vh]">
-            <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-slate-800/50 p-8 rounded-2xl border border-slate-700 w-full max-w-md backdrop-blur-xl shadow-2xl"
-            >
-                <div className="flex flex-col items-center mb-8 text-center">
-                    <div className="bg-primary/20 p-4 rounded-full mb-4">
-                        <LogIn className="w-8 h-8 text-primary-light" />
-                    </div>
-                    <h2 className="text-3xl font-bold">Welcome Back</h2>
-                    <p className="text-slate-400 mt-2">Log in to your CampusSphere account</p>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 mb-6">
-                    <LoginTypeButton active={loginType === 'student'} onClick={() => setLoginType('student')} icon={<GraduationCap size={17} />} label="Student" />
-                    <LoginTypeButton active={loginType === 'faculty'} onClick={() => setLoginType('faculty')} icon={<School size={17} />} label="Faculty" />
-                    <LoginTypeButton active={loginType === 'admin'} onClick={() => setLoginType('admin')} icon={<ShieldCheck size={17} />} label="Admin" />
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
-                        <div className="relative">
-                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                                <Mail className="w-5 h-5" />
-                            </span>
-                            <input 
-                                type="email" 
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="bg-slate-900 border border-slate-700 text-white rounded-xl block w-full pl-10 p-3 focus:ring-primary focus:border-primary transition outline-none"
-                                placeholder="name@example.com"
-                                required
-                            />
+        <div className="flex justify-center items-center min-h-[75vh] py-10 px-4">
+            <div className="w-full max-w-md">
+                <Card className="p-8 border-indigo-500/30 bg-zinc-900/80 shadow-2xl backdrop-blur-2xl">
+                    <div className="flex flex-col items-center mb-8 text-center">
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-tr from-indigo-600 to-pink-600 text-white shadow-lg shadow-indigo-600/30 mb-4">
+                            <LogIn className="w-6 h-6" />
                         </div>
+                        <h2 className="text-2xl sm:text-3xl font-black text-zinc-100 tracking-tight">Welcome Back</h2>
+                        <p className="text-zinc-400 text-xs mt-1">Sign in to your CampusSphere unified portal</p>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
-                        <div className="relative">
-                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500">
-                                <Lock className="w-5 h-5" />
-                            </span>
-                            <input 
-                                type="password" 
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="bg-slate-900 border border-slate-700 text-white rounded-xl block w-full pl-10 p-3 focus:ring-primary focus:border-primary transition outline-none"
-                                placeholder="••••••••"
-                                required
-                            />
-                        </div>
+                    {/* Role Tab Buttons */}
+                    <div className="grid grid-cols-3 gap-2 mb-6">
+                        <button
+                            type="button"
+                            onClick={() => setLoginType('student')}
+                            className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-xs font-bold transition-all ${
+                                loginType === 'student'
+                                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-300 shadow-sm'
+                                    : 'border-zinc-800 bg-zinc-950/60 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                            }`}
+                        >
+                            <GraduationCap className="w-4 h-4" />
+                            <span>Student</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLoginType('faculty')}
+                            className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-xs font-bold transition-all ${
+                                loginType === 'faculty'
+                                    ? 'border-pink-500 bg-pink-500/15 text-pink-300 shadow-sm'
+                                    : 'border-zinc-800 bg-zinc-950/60 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                            }`}
+                        >
+                            <School className="w-4 h-4" />
+                            <span>Faculty</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setLoginType('admin')}
+                            className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-xs font-bold transition-all ${
+                                loginType === 'admin'
+                                    ? 'border-amber-500 bg-amber-500/15 text-amber-300 shadow-sm'
+                                    : 'border-zinc-800 bg-zinc-950/60 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                            }`}
+                        >
+                            <ShieldCheck className="w-4 h-4" />
+                            <span>Admin</span>
+                        </button>
                     </div>
 
-                    <button 
-                        type="submit" 
-                        disabled={loading}
-                        className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3 px-4 rounded-xl transition flex justify-center items-center space-x-2"
-                    >
-                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Sign In</span>}
-                    </button>
-                </form>
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <Input
+                            label="Email Address"
+                            type="email"
+                            required
+                            icon={Mail}
+                            placeholder="name@university.edu"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
 
-                <p className="text-center text-slate-400 mt-8">
-                    Don't have an account? <Link to="/register" className="text-primary-light hover:underline">Sign up</Link>
-                </p>
-                {loginType === 'admin' && <p className="mt-3 text-center text-xs text-slate-500">Need a new college admin account? <Link to="/admin-register" className="text-primary-light hover:underline">Register with access code</Link></p>}
-            </motion.div>
+                        <Input
+                            label="Password"
+                            type="password"
+                            required
+                            icon={Lock}
+                            placeholder="••••••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+
+                        <Button 
+                            type="submit" 
+                            variant="primary" 
+                            size="lg"
+                            className="w-full justify-center" 
+                            loading={loading}
+                            icon={LogIn}
+                        >
+                            Sign In to Portal
+                        </Button>
+                    </form>
+
+                    <div className="mt-8 pt-6 border-t border-zinc-800 text-center space-y-2 text-xs text-zinc-400">
+                        <p>
+                            Don't have an account?{' '}
+                            <Link to="/register" className="text-indigo-400 font-bold hover:underline">
+                                Create an account
+                            </Link>
+                        </p>
+                        {loginType === 'admin' && (
+                            <p className="text-amber-400/90 pt-1">
+                                Need admin onboarding?{' '}
+                                <Link to="/admin-register" className="underline font-bold">
+                                    Register with private access code
+                                </Link>
+                            </p>
+                        )}
+                    </div>
+                </Card>
+            </div>
         </div>
     );
 };
-
-const LoginTypeButton = ({ active, onClick, icon, label }) => (
-    <button type="button" onClick={onClick} className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-xs font-bold transition ${active ? 'border-primary bg-primary/15 text-primary-light' : 'border-slate-700 bg-slate-900 text-slate-500 hover:border-slate-600'}`}>
-        {icon}{label}
-    </button>
-);
 
 export default Login;

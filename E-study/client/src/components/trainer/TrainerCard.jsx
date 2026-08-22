@@ -1,45 +1,62 @@
 import React from 'react';
-import { User, Award, ShieldCheck, Zap } from 'lucide-react';
+import { User, ShieldCheck, Zap, Star, BookOpen, Clock } from 'lucide-react';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+import { Avatar } from '../ui/Avatar';
 
-const TrainerCard = ({ trainer, onConnect, isPending, isConnected }) => {
+export const TrainerCard = ({ trainer, onConnect, isPending, isConnected }) => {
     return (
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 hover:border-slate-500 transition group">
-            <div className="flex items-start justify-between mb-4">
-                <div className="bg-primary/20 p-3 rounded-xl group-hover:scale-110 transition">
-                    <User className="text-primary-light w-8 h-8" />
+        <Card className="p-6 flex flex-col justify-between group hover:border-indigo-500/40">
+            <div>
+                <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                        <Avatar name={trainer.name} size="lg" status="online" />
+                        <div>
+                            <h3 className="text-lg font-bold text-zinc-100 group-hover:text-indigo-400 transition-colors">
+                                {trainer.name}
+                            </h3>
+                            <p className="text-xs text-zinc-400 font-medium">
+                                {trainer.email}
+                            </p>
+                        </div>
+                    </div>
+                    <Badge variant="success" size="sm" icon={ShieldCheck}>
+                        Verified
+                    </Badge>
                 </div>
-                <div className="flex items-center text-xs font-semibold bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded">
-                    <ShieldCheck className="w-3 h-3 mr-1" />
-                    Verified
+
+                <p className="text-zinc-400 text-sm mb-4 line-clamp-2 leading-relaxed">
+                    {trainer.trainerProfile?.bio || 'Experienced academic mentor specializing in modern engineering and software development.'}
+                </p>
+
+                {/* Skill Badges */}
+                <div className="flex flex-wrap gap-1.5 mb-6">
+                    {trainer.trainerProfile?.expertise?.length ? (
+                        trainer.trainerProfile.expertise.map((skill, idx) => (
+                            <span 
+                                key={idx} 
+                                className="bg-zinc-950/80 text-zinc-300 text-[11px] font-medium px-2.5 py-1 rounded-lg border border-zinc-800"
+                            >
+                                {skill}
+                            </span>
+                        ))
+                    ) : (
+                        <span className="text-xs text-zinc-500 italic">No expertise tags listed</span>
+                    )}
                 </div>
             </div>
 
-            <h3 className="text-xl font-bold mb-1">{trainer.name}</h3>
-            <p className="text-slate-400 text-sm mb-4 line-clamp-2">{trainer.trainerProfile?.bio || 'Professional IT Trainer specializing in modern technologies.'}</p>
-
-            <div className="flex flex-wrap gap-2 mb-6">
-                {trainer.trainerProfile?.expertise?.map((skill, idx) => (
-                    <span key={idx} className="bg-slate-900 text-slate-300 text-[10px] px-2 py-1 rounded-md border border-slate-700">
-                        {skill}
-                    </span>
-                ))}
-            </div>
-
-            <button 
+            <Button
+                variant={isConnected ? 'success' : isPending ? 'outline' : 'primary'}
                 disabled={isPending || isConnected}
                 onClick={() => onConnect(trainer._id)}
-                className={`w-full py-3 rounded-xl font-bold transition flex items-center justify-center space-x-2 
-                    ${isConnected ? 'bg-emerald-600 text-white' : 
-                      isPending ? 'bg-slate-700 text-slate-400' : 'bg-primary hover:bg-primary-dark text-white'}`}
+                className="w-full justify-center"
+                icon={isConnected ? ShieldCheck : isPending ? Clock : Zap}
             >
-                {isConnected ? <span>Connected</span> : isPending ? <span>Request Sent</span> : (
-                    <>
-                        <Zap size={16} />
-                        <span>Send Handshake</span>
-                    </>
-                )}
-            </button>
-        </div>
+                {isConnected ? 'Connected Mentor' : isPending ? 'Request Pending' : 'Send Handshake'}
+            </Button>
+        </Card>
     );
 };
 

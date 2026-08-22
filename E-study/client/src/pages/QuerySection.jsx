@@ -2,175 +2,288 @@ import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
-import { MessageSquare, Send, CheckCircle2, Clock, Loader2, User, ChevronDown, ChevronUp } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    MessageSquare, Send, CheckCircle2, Clock, 
+    Loader2, User, ChevronDown, ChevronUp, Sparkles,
+    AlertCircle, MessageCircle, HelpCircle
+} from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Select } from '../components/ui/Select';
+import { Avatar } from '../components/ui/Avatar';
 
 const QuerySection = () => {
     const { userInfo } = useAuth();
     const [queries, setQueries] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [connections, setConnections] = useState([]); // For learners to pick a trainer
-    const [activeQuery, setActiveQuery] = useState(null); // For trainers to answer
+    const [connections, setConnections] = useState([]);
+    const [activeQuery, setActiveQuery] = useState(null);
     const [answerText, setAnswerText] = useState('');
     const [newQuery, setNewQuery] = useState({ trainerId: '', question: '' });
+    const [filterStatus, setFilterStatus] = useState('all'); // 'all' | 'unresolved' | 'resolved'
 
-    useEffect(() => {
-        fetchData();
-    }, [userInfo]);
+    const isStudent = ['student', 'learner'].includes(userInfo?.role);
+    const isTrainer = ['trainer', 'faculty'].includes(userInfo?.role);
 
     const fetchData = async () => {
         try {
-            const endpoint = userInfo.role === 'trainer' ? '/queries/trainer' : '/queries/learner';
+            const endpoint = isTrainer ? '/queries/trainer' : '/queries/learner';
             const [qRes, cRes] = await Promise.all([
                 api.get(endpoint),
-                userInfo.role === 'learner' ? api.get('/handshakes/my-connections') : Promise.resolve({ data: [] })
+                isStudent ? api.get('/handshakes/my-connections') : Promise.resolve({ data: [] })
             ]);
             setQueries(qRes.data);
             setConnections(cRes.data);
-        } catch (error) {
-            toast.error('Failed to load queries');
+        } catch (_error) {
+            toast.error('Failed to load query feed');
         } finally {
             setLoading(false);
         }
     };
 
+    useEffect(() => {
+        fetchData();
+    }, [userInfo]);
+
     const handleAsk = async (e) => {
         e.preventDefault();
+        if (!newQuery.trainerId) return toast.error('Please select a connected mentor first');
+        if (!newQuery.question.trim()) return toast.error('Please describe your query');
         try {
             await api.post('/queries', newQuery);
-            toast.success('Query Sent!');
+            toast.success('Query submitted to mentor!');
             setNewQuery({ trainerId: '', question: '' });
             fetchData();
         } catch (error) {
-            toast.error('Failed to send query');
+            toast.error(error.response?.data?.message || 'Failed to send query');
         }
     };
 
     const handleAnswer = async (id) => {
+        if (!answerText.trim()) return toast.error('Please enter an answer');
         try {
             await api.put(`/queries/${id}`, { answer: answerText, status: 'resolved' });
-            toast.success('Response Sent!');
+            toast.success('Response delivered to student!');
             setAnswerText('');
             setActiveQuery(null);
             fetchData();
-        } catch (error) {
-            toast.error('Failed to respond');
+        } catch (_error) {
+            toast.error('Failed to submit answer');
         }
     };
 
-    if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-primary" /></div>;
+    const filteredQueries = queries.filter(q => {
+        if (filterStatus === 'all') return true;
+        return q.status === filterStatus;
+    });
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center p-24 space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin text-indigo-400" />
+                <p className="text-zinc-400 text-sm font-medium">Loading doubt resolution channel...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-10">
-            <header>
-                <h2 className="text-4xl font-extrabold mb-2">Query Center</h2>
-                <p className="text-slate-400">Collaborate and resolve doubts in real-time.</p>
+        <div className="max-w-4xl mx-auto space-y-8 pb-16">
+            {/* Header */}
+            <header className="border-b border-zinc-800 pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div className="flex items-center space-x-2 mb-1">
+                        <Badge variant="primary" size="sm" icon={HelpCircle}>
+                            Doubt Resolution Hub
+                        </Badge>
+                        <span className="text-xs text-zinc-500 font-mono">{queries.length} Total Tickets</span>
+                    </div>
+                    <h1 className="text-3xl sm:text-4xl font-extrabold text-zinc-100 tracking-tight">
+                        Academic Queries & Doubts
+                    </h1>
+                    <p className="mt-1 text-zinc-400 text-sm">
+                        Collaborate directly with assigned mentors, ask technical questions, and resolve coursework hurdles.
+                    </p>
+                </div>
             </header>
 
-            {userInfo.role === 'learner' && (
-                <section className="bg-slate-800 border border-slate-700 rounded-2xl p-8">
-                    <h3 className="text-2xl font-bold mb-6 flex items-center space-x-2">
-                        <Send size={24} className="text-primary-light" />
-                        <span>Ask New Query</span>
-                    </h3>
-                    <form onSubmit={handleAsk} className="space-y-4">
-                        <div>
-                            <label className="text-sm text-slate-400 block mb-1">Select Connected Trainer</label>
-                            <select 
-                                required
-                                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 focus:border-primary outline-none transition"
-                                value={newQuery.trainerId}
-                                onChange={e => setNewQuery({...newQuery, trainerId: e.target.value})}
-                            >
-                                <option value="">Choose a trainer...</option>
-                                {connections.map(c => (
-                                    <option key={c.trainerId._id} value={c.trainerId._id}>{c.trainerId.name}</option>
-                                ))}
-                            </select>
+            {/* Ask Query Form for Students */}
+            {isStudent && (
+                <Card className="p-6 border-indigo-500/30 bg-zinc-900/90 shadow-xl">
+                    <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-zinc-800">
+                        <div className="p-2.5 rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+                            <Send className="w-5 h-5" />
                         </div>
                         <div>
-                            <label className="text-sm text-slate-400 block mb-1">Your Question</label>
-                            <textarea 
+                            <CardTitle className="text-lg">Submit New Doubt Ticket</CardTitle>
+                            <CardDescription>Direct your query to any of your connected mentors.</CardDescription>
+                        </div>
+                    </div>
+
+                    <form onSubmit={handleAsk} className="space-y-4">
+                        <Select
+                            label="Select Connected Mentor"
+                            required
+                            placeholder="Choose an active mentor connection..."
+                            value={newQuery.trainerId}
+                            onChange={(e) => setNewQuery({ ...newQuery, trainerId: e.target.value })}
+                            options={connections.map((c) => ({
+                                value: c.trainerId?._id,
+                                label: `${c.trainerId?.name} (${c.trainerId?.email})`
+                            }))}
+                        />
+
+                        {!connections.length && (
+                            <p className="text-xs text-amber-400">
+                                You don't have any accepted mentor connections yet. Visit <a href="/find-trainers" className="underline font-bold">Find Trainers</a> to connect.
+                            </p>
+                        )}
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-300 mb-1.5">
+                                Describe Your Doubt / Question
+                            </label>
+                            <textarea
                                 required
-                                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 h-24 focus:border-primary outline-none transition"
-                                placeholder="Describe your doubt here..."
+                                className="w-full bg-zinc-950/70 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-indigo-500 transition h-28"
+                                placeholder="Explain the problem or code block you are struggling with..."
                                 value={newQuery.question}
-                                onChange={e => setNewQuery({...newQuery, question: e.target.value})}
+                                onChange={(e) => setNewQuery({ ...newQuery, question: e.target.value })}
                             />
                         </div>
-                        <button className="bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-bold transition flex items-center space-x-2">
-                            <span>Shoot Question</span>
-                            <Send size={18} />
-                        </button>
+
+                        <div className="flex justify-end pt-1">
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                disabled={!connections.length}
+                                icon={Send}
+                            >
+                                Send Question Ticket
+                            </Button>
+                        </div>
                     </form>
-                </section>
+                </Card>
             )}
 
-            <section className="space-y-6">
-                <h3 className="text-2xl font-bold">Query History</h3>
-                <div className="space-y-4">
-                    {queries.map(q => (
-                        <div key={q._id} className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden">
-                            <div className={`p-6 ${q.status === 'resolved' ? 'border-l-4 border-emerald-500' : 'border-l-4 border-amber-500'}`}>
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="bg-slate-700 p-2 rounded-full">
-                                            <User size={20} className="text-slate-300" />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold">{userInfo.role === 'trainer' ? q.learnerId.name : q.trainerId.name}</p>
-                                            <p className="text-xs text-slate-500">{new Date(q.createdAt).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${q.status === 'resolved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                                        {q.status}
-                                    </span>
-                                </div>
-                                <h4 className="text-lg font-semibold mb-4 text-slate-200">Q: {q.question}</h4>
-                                
-                                {q.answer && (
-                                    <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-4">
-                                        <p className="text-xs font-bold text-primary-light mb-1 uppercase tracking-widest">Trainer Response</p>
-                                        <p className="text-slate-300 italic">{q.answer}</p>
-                                    </div>
-                                )}
+            {/* Query History Feed */}
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-zinc-100">Query Tickets History</h3>
+                    <div className="flex items-center gap-1.5">
+                        {['all', 'unresolved', 'resolved'].map((st) => (
+                            <button
+                                key={st}
+                                type="button"
+                                onClick={() => setFilterStatus(st)}
+                                className={`px-3 py-1 rounded-xl text-xs font-semibold capitalize transition ${
+                                    filterStatus === st
+                                        ? 'bg-zinc-800 text-white border border-zinc-700'
+                                        : 'text-zinc-500 hover:text-zinc-300'
+                                }`}
+                            >
+                                {st}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-                                {userInfo.role === 'trainer' && q.status === 'unresolved' && (
-                                    <div className="mt-6 pt-6 border-t border-slate-700/50">
-                                        {activeQuery === q._id ? (
-                                            <div className="space-y-4">
-                                                <textarea 
-                                                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 h-24"
-                                                    placeholder="Write your answer..."
-                                                    value={answerText}
-                                                    onChange={e => setAnswerText(e.target.value)}
-                                                />
-                                                <div className="flex space-x-3">
-                                                    <button onClick={() => handleAnswer(q._id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl transition font-bold">Submit Answer</button>
-                                                    <button onClick={() => setActiveQuery(null)} className="text-slate-400 px-6 py-2">Cancel</button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <button 
-                                                onClick={() => setActiveQuery(q._id)}
-                                                className="text-primary-light font-bold flex items-center space-x-1 hover:underline"
-                                            >
-                                                <MessageSquare size={18} className="mr-1" />
-                                                <span>Respond Now</span>
-                                            </button>
-                                        )}
+                <div className="space-y-4">
+                    {filteredQueries.map((q) => (
+                        <Card key={q._id} className="p-6 overflow-hidden">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-zinc-800">
+                                <div className="flex items-center space-x-3">
+                                    <Avatar 
+                                        name={isTrainer ? q.learnerId?.name : q.trainerId?.name} 
+                                        size="sm" 
+                                    />
+                                    <div>
+                                        <p className="font-bold text-sm text-zinc-100">
+                                            {isTrainer ? q.learnerId?.name : q.trainerId?.name}
+                                        </p>
+                                        <p className="text-[11px] text-zinc-500 flex items-center gap-1">
+                                            <Clock className="w-3 h-3" />
+                                            {new Date(q.createdAt).toLocaleString()}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Badge 
+                                    variant={q.status === 'resolved' ? 'success' : 'warning'} 
+                                    size="sm"
+                                    icon={q.status === 'resolved' ? CheckCircle2 : Clock}
+                                >
+                                    {q.status}
+                                </Badge>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="p-3.5 rounded-xl bg-zinc-950/60 border border-zinc-800 text-sm text-zinc-200">
+                                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider block mb-1">
+                                        Question:
+                                    </span>
+                                    {q.question}
+                                </div>
+
+                                {q.answer && (
+                                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-sm text-emerald-200">
+                                        <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block mb-1">
+                                            Mentor Response:
+                                        </span>
+                                        {q.answer}
                                     </div>
                                 )}
                             </div>
-                        </div>
+
+                            {/* Mentor Response Form */}
+                            {isTrainer && q.status === 'unresolved' && (
+                                <div className="mt-4 pt-4 border-t border-zinc-800">
+                                    {activeQuery === q._id ? (
+                                        <div className="space-y-3">
+                                            <textarea
+                                                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-emerald-500 transition h-24"
+                                                placeholder="Write your explanation or code solution..."
+                                                value={answerText}
+                                                onChange={(e) => setAnswerText(e.target.value)}
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <Button 
+                                                    variant="success" 
+                                                    size="sm"
+                                                    onClick={() => handleAnswer(q._id)}
+                                                >
+                                                    Submit Response
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm"
+                                                    onClick={() => setActiveQuery(null)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setActiveQuery(q._id)}
+                                            icon={MessageSquare}
+                                        >
+                                            Respond to Doubt
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                        </Card>
                     ))}
-                    {queries.length === 0 && (
-                        <div className="text-center py-20 bg-slate-800/30 rounded-3xl border border-dashed border-slate-700">
-                            <p className="text-slate-500">No queries found.</p>
+
+                    {filteredQueries.length === 0 && (
+                        <div className="p-16 text-center border border-dashed border-zinc-800 rounded-2xl text-zinc-500 text-sm">
+                            No query tickets found in this category.
                         </div>
                     )}
                 </div>
-            </section>
+            </div>
         </div>
     );
 };
