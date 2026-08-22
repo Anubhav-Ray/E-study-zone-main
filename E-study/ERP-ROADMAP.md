@@ -1,18 +1,20 @@
 # CampusSphere ERP roadmap
 
+Anubhav Kumar Ray
+
 ## Product scope
 
 CampusSphere combines college administration, academics, learning, and grievance resolution. Existing `learner` and `trainer` accounts remain supported while the application is migrated to the ERP terminology: student and faculty.
 
 ## Roles
 
-| Role | Core responsibilities |
-| --- | --- |
-| Student | View attendance/results, submit work, use learning content, file complaints |
-| Faculty | Mark attendance, publish material, manage assignments and marks |
-| HOD | Review department analytics and escalated complaints |
-| Admin | Manage people, departments, academic setup, notices, reports |
-| Placement officer | Manage job drives and applications |
+| Role              | Core responsibilities                                                       |
+| ----------------- | --------------------------------------------------------------------------- |
+| Student           | View attendance/results, submit work, use learning content, file complaints |
+| Faculty           | Mark attendance, publish material, manage assignments and marks             |
+| HOD               | Review department analytics and escalated complaints                        |
+| Admin             | Manage people, departments, academic setup, notices, reports                |
+| Placement officer | Manage job drives and applications                                          |
 
 ## Delivery phases
 
